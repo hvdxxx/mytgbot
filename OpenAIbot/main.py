@@ -11,15 +11,14 @@ openai.api_key = os.getenv('TOKEN')
 bot = Bot(os.getenv('TOKENbot'))
 dp = Dispatcher(bot=bot, storage=storage)
 
-# Обработчик команды /start
-@dp.message_handler(commands=['start'], state='*')
-async def cmd_start(message: types.Message, state: FSMContext):
+@dp.message_handler(commands=['start'])
+async def cmd_start(message: types.Message):
     await message.answer(f'Приветствую!')
-    await state.reset_state()
+    context = dp.current_state(chat=message.chat.id)
+    await context.set_state('waiting_for_work')
 
-# Обработчик текстовых сообщений в состоянии waiting_for_work
 @dp.message_handler(state='waiting_for_work')
-async def handle_text_messages(message: types.Message, state: FSMContext):
+async def handle_text_messages(message: types.Message):
     text = message.text
     response = openai.Completion.create(
       model="text-davinci-003",
@@ -34,4 +33,4 @@ async def handle_text_messages(message: types.Message, state: FSMContext):
     await message.answer(response['choices'][0]['text'])
 
 if __name__ == '__main__':
-    executor.start_polling(dp, on_startup=cmd_start)
+    executor.start_polling(dp)
